@@ -1,0 +1,12 @@
+hard_tabs = true
+tab_spaces = 2
+
+max_width = 120
+
+edition = "2024"
+
+reorder_imports = true
+reorder_modules = true
+remove_nested_parens = true
+use_field_init_shorthand = true
+newline_style = "Unix"
