@@ -6,7 +6,8 @@ use sea_orm::{DatabaseConnection, EntityTrait};
 use crate::error::{AppError, AppResult, ErrorBody};
 use crate::models::dto::StudentDto;
 use crate::models::entities::alumno;
-use crate::routes::comun::{id, student_dto};
+use crate::routes::comun::id;
+use crate::services::contactos;
 
 /// One student.
 #[utoipa::path(
@@ -29,5 +30,5 @@ pub(super) async fn ver_alumno(
 		.one(conn.get_ref())
 		.await?
 		.ok_or_else(|| AppError::not_found("student"))?;
-	Ok(HttpResponse::Ok().json(student_dto(row)))
+	Ok(HttpResponse::Ok().json(contactos::perfil(&conn, row).await?))
 }

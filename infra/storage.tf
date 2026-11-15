@@ -1,37 +1,3 @@
-resource "aws_dynamodb_table" "payments" {
-  name         = "${var.name}-payments"
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "id"
-
-  attribute {
-    name = "id"
-    type = "S"
-  }
-  attribute {
-    name = "workshopId"
-    type = "S"
-  }
-  attribute {
-    name = "createdAt"
-    type = "S"
-  }
-
-  global_secondary_index {
-    name            = "byWorkshop"
-    hash_key        = "workshopId"
-    range_key       = "createdAt"
-    projection_type = "ALL"
-  }
-
-  point_in_time_recovery {
-    enabled = true
-  }
-
-  server_side_encryption {
-    enabled = true
-  }
-}
-
 resource "aws_dynamodb_table" "pey_events" {
   name         = "${var.name}-pey-events"
   billing_mode = "PAY_PER_REQUEST"

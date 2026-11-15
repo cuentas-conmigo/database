@@ -10,6 +10,7 @@ pub mod acceso;
 mod alumnos;
 pub mod cobros;
 mod comun;
+pub mod contactos;
 mod cuentas;
 mod esquema;
 pub mod eventos;

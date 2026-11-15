@@ -16,10 +16,6 @@ output "instance_id" {
   value = aws_instance.api.id
 }
 
-output "payments_table" {
-  value = aws_dynamodb_table.payments.name
-}
-
 output "pey_events_table" {
   value = aws_dynamodb_table.pey_events.name
 }
