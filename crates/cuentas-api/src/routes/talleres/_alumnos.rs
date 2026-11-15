@@ -7,9 +7,9 @@ use crate::config::AppState;
 use crate::error::{AppResult, ErrorBody};
 use crate::models::dto::RosterEntryDto;
 use crate::models::entities::{alumno, inscripcion};
-use crate::routes::comun::{id, student_dto};
+use crate::routes::comun::id;
 use crate::services::Sesion;
-use crate::services::cobros;
+use crate::services::{cobros, contactos};
 
 /// Enrolled students with the status of the current month's fee.
 #[utoipa::path(
@@ -51,7 +51,7 @@ pub(super) async fn alumnos_del_taller(
 		if let Some(student) = alumno::Entity::find_by_id(item.alumno_id).one(conn.get_ref()).await? {
 			let status = if paid.contains(&student.id) { "paid" } else { "pending" };
 			entries.push(RosterEntryDto {
-				student: student_dto(student),
+				student: contactos::perfil(&conn, student).await?,
 				status,
 			});
 		}

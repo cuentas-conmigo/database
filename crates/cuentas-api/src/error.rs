@@ -116,6 +116,14 @@ impl AppError {
 		)
 	}
 
+	pub fn duplicate_phone() -> Self {
+		Self::new(
+			StatusCode::CONFLICT,
+			"duplicate-phone",
+			"that WhatsApp is already registered",
+		)
+	}
+
 	pub fn bad_request(message: impl Into<String>) -> Self {
 		Self::new(StatusCode::BAD_REQUEST, "bad-request", message)
 	}

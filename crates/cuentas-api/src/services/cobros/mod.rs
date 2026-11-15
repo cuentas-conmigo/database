@@ -163,9 +163,15 @@ impl PaymentService {
 		let mut charge = resolve(&workshop, &self.period, &input.option_id, input.amount)
 			.ok_or(PaymentError::Invalid("unknown charge option"))?;
 		charge.amount = self.charged(charge.amount);
-		if input.method == Method::Helper {
-			return Err(PaymentError::Invalid("this student has no helper registered"));
-		}
+		let helper_phone = if input.method == Method::Helper {
+			Some(
+				crate::services::contactos::primer_ayudante(conn, input.student_id)
+					.await?
+					.ok_or(PaymentError::Invalid("this student has no helper registered"))?,
+			)
+		} else {
+			None
+		};
 
 		let now = Utc::now();
 		let cash = input.method == Method::Cash;
@@ -208,6 +214,28 @@ impl PaymentService {
 			created_at: now.to_rfc3339(),
 			qr_string: None,
 		};
+		if let Some(phone) = &helper_phone {
+			let request = ChargeRequest {
+				payment_id: id.to_string(),
+				amount: f64::from(charge.amount),
+				concept: short_concept(&format!("{} {}", charge.label, workshop.nombre)),
+				num_ref: format!("{id:07}"),
+				created_at: now,
+			};
+			match self.pey.create_push(&request, phone).await {
+				Ok(push) => {
+					let mut cambio: pago::ActiveModel = fila.into();
+					cambio.transaction_id = Set(Some(push.transaction_id));
+					fila = cambio.update(conn).await?;
+				}
+				Err(error) => {
+					let mut cambio: pago::ActiveModel = fila.into();
+					cambio.estado = Set("fallido".to_string());
+					cambio.update(conn).await?;
+					return Err(PaymentError::Pey(error));
+				}
+			}
+		}
 		if input.method == Method::Qr {
 			let request = ChargeRequest {
 				payment_id: id.to_string(),

@@ -7,9 +7,9 @@ use crate::config::AppState;
 use crate::error::{AppError, AppResult, ErrorBody};
 use crate::models::entities::inscripcion;
 use crate::routes::comun::id;
-use crate::services::Sesion;
+use crate::services::{Sesion, contactos};
 
-/// Frees the student's place (`inscripciones_taller.activa = 0`); their payments stay.
+/// Removes a request, or frees an enrolled student's place (`inscripciones_taller.activa = 0`); payments stay.
 #[utoipa::path(
 	tag = "talleres",
 	operation_id = "talleres_baja",
@@ -20,7 +20,7 @@ use crate::services::Sesion;
 	responses(
 		(status = 204, description = "Released"),
 		(status = 401, description = "Wrong or missing login", body = ErrorBody),
-		(status = 404, description = "No active enrollment", body = ErrorBody),
+		(status = 404, description = "No request and no active enrollment", body = ErrorBody),
 	),
 	security(("basic" = [])),
 )]
@@ -37,6 +37,9 @@ pub(super) async fn dar_de_baja(
 		.workshop(&conn, sesion.id, id(&workshop_id, "workshop")?)
 		.await?;
 	let student_id = id(&student_id, "student")?;
+	if contactos::quitar_solicitud(&conn, row.id, student_id).await? {
+		return Ok(HttpResponse::NoContent().finish());
+	}
 	let enrolled = inscripcion::Entity::find()
 		.filter(inscripcion::Column::TallerId.eq(row.id))
 		.filter(inscripcion::Column::AlumnoId.eq(student_id))

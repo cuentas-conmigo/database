@@ -25,6 +25,17 @@
         ],
         "type": "object"
       },
+      "CodeDto": {
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
       "ErrorBody": {
         "description": "Body of every error of the app's routes.",
         "properties": {
@@ -111,12 +122,34 @@
       },
       "NewStudentBody": {
         "properties": {
+          "helperPhone": {
+            "description": "Whoever helps them pay, 10 digits.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "name": {
             "type": "string"
+          },
+          "phone": {
+            "description": "WhatsApp, 10 digits.",
+            "type": "string"
+          },
+          "photoConsent": {
+            "type": "boolean"
+          },
+          "photoUri": {
+            "description": "Kept only when `photo_consent` is true.",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
-          "name"
+          "name",
+          "phone"
         ],
         "type": "object"
       },
@@ -179,6 +212,26 @@
           "status",
           "folio",
           "createdAt"
+        ],
+        "type": "object"
+      },
+      "PhotoDto": {
+        "description": "A photo is only sent together with who allowed it and when.",
+        "properties": {
+          "grantedAt": {
+            "type": "string"
+          },
+          "grantedBy": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uri",
+          "grantedBy",
+          "grantedAt"
         ],
         "type": "object"
       },
@@ -270,8 +323,18 @@
             "type": "string"
           },
           "phone": {
-            "description": "Amanda's `alumnos` has no phone yet.",
+            "description": "WhatsApp, 10 digits; empty when it was never registered.",
             "type": "string"
+          },
+          "photo": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PhotoDto"
+              }
+            ]
           }
         },
         "required": [
@@ -423,6 +486,16 @@
           }
         ],
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentDto"
+                }
+              }
+            },
+            "description": "The student, without photo"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -433,7 +506,7 @@
             },
             "description": "Wrong or missing login"
           },
-          "501": {
+          "404": {
             "content": {
               "application/json": {
                 "schema": {
@@ -441,7 +514,7 @@
                 }
               }
             },
-            "description": "Not in the schema yet"
+            "description": "No such student"
           }
         },
         "security": [
@@ -449,7 +522,7 @@
             "basic": []
           }
         ],
-        "summary": "Deletes the photo and its consent record. Amanda's schema has no photos yet.",
+        "summary": "Deletes the photo together with its consent record.",
         "tags": [
           "alumnos"
         ]
@@ -902,7 +975,7 @@
                 }
               }
             },
-            "description": "Amanda's validation message"
+            "description": "Amanda's validation message, or a phone without 10 digits"
           },
           "401": {
             "content": {
@@ -923,6 +996,16 @@
               }
             },
             "description": "Not a workshop of this tallerista"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "That WhatsApp is already registered (`duplicate-phone`)"
           }
         },
         "security": [
@@ -930,7 +1013,7 @@
             "basic": []
           }
         ],
-        "summary": "Enrolls a new student, with the same rule as Amanda's `/cuenta/alumno` (`guardar_alumno_cuenta`).",
+        "summary": "Enrolls a new student with Amanda's rule (`guardar_alumno_cuenta`), plus WhatsApp, helper and a consented photo.",
         "tags": [
           "talleres"
         ]
@@ -960,6 +1043,9 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "Enrolled"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -970,7 +1056,7 @@
             },
             "description": "Wrong or missing login"
           },
-          "501": {
+          "404": {
             "content": {
               "application/json": {
                 "schema": {
@@ -978,7 +1064,7 @@
                 }
               }
             },
-            "description": "Not in the schema yet"
+            "description": "No request from this student"
           }
         },
         "security": [
@@ -986,7 +1072,7 @@
             "basic": []
           }
         ],
-        "summary": "Gives a waiting student a place. Amanda's schema has no pending enrollments yet.",
+        "summary": "Gives a waiting person a place: their request becomes an active enrollment.",
         "tags": [
           "talleres"
         ]
@@ -1037,7 +1123,7 @@
                 }
               }
             },
-            "description": "No active enrollment"
+            "description": "No request and no active enrollment"
           }
         },
         "security": [
@@ -1045,7 +1131,7 @@
             "basic": []
           }
         ],
-        "summary": "Frees the student's place (`inscripciones_taller.activa = 0`); their payments stay.",
+        "summary": "Removes a request, or frees an enrolled student's place (`inscripciones_taller.activa = 0`); payments stay.",
         "tags": [
           "talleres"
         ]
@@ -1126,6 +1212,16 @@
           }
         ],
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeDto"
+                }
+              }
+            },
+            "description": "The current code"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -1136,7 +1232,7 @@
             },
             "description": "Wrong or missing login"
           },
-          "501": {
+          "404": {
             "content": {
               "application/json": {
                 "schema": {
@@ -1144,7 +1240,7 @@
                 }
               }
             },
-            "description": "Not in the schema yet"
+            "description": "Not a workshop of this tallerista"
           }
         },
         "security": [
@@ -1152,7 +1248,7 @@
             "basic": []
           }
         ],
-        "summary": "The workshop's enrollment code. Amanda's schema has no enrollment codes yet.",
+        "summary": "The code people type to ask for a place in the workshop.",
         "tags": [
           "talleres"
         ]
@@ -1171,6 +1267,16 @@
           }
         ],
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeDto"
+                }
+              }
+            },
+            "description": "The new code"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -1181,7 +1287,7 @@
             },
             "description": "Wrong or missing login"
           },
-          "501": {
+          "404": {
             "content": {
               "application/json": {
                 "schema": {
@@ -1189,7 +1295,7 @@
                 }
               }
             },
-            "description": "Not in the schema yet"
+            "description": "Not a workshop of this tallerista"
           }
         },
         "security": [
@@ -1197,7 +1303,7 @@
             "basic": []
           }
         ],
-        "summary": "Replaces the workshop's enrollment code. Amanda's schema has no enrollment codes yet.",
+        "summary": "Replaces the enrollment code; the old one stops working at once.",
         "tags": [
           "talleres"
         ]
@@ -1229,7 +1335,7 @@
                 }
               }
             },
-            "description": "Always empty for now"
+            "description": "People waiting for approval"
           },
           "401": {
             "content": {
@@ -1257,7 +1363,7 @@
             "basic": []
           }
         ],
-        "summary": "People waiting for approval. Amanda's schema has no pending enrollments yet, so nobody is waiting.",
+        "summary": "People asking for a place, oldest first: `pending` or `waitlist`.",
         "tags": [
           "talleres"
         ]

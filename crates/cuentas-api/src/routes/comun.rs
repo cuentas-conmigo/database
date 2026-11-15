@@ -168,13 +168,3 @@ pub(crate) fn id(value: &str, what: &str) -> crate::error::AppResult<i32> {
 		.parse()
 		.map_err(|_| crate::error::AppError::not_found(what))
 }
-
-/// La fila de `alumnos` como la ve la app; su esquema todavía no tiene teléfono ni quién ayuda.
-pub(crate) fn student_dto(row: crate::models::entities::alumno::Model) -> crate::models::dto::StudentDto {
-	crate::models::dto::StudentDto {
-		id: row.id.to_string(),
-		name: row.nombre,
-		phone: String::new(),
-		helpers: Vec::new(),
-	}
-}

@@ -56,4 +56,19 @@ impl From<ChargeOption> for ChargeOptionDto {
 #[serde(rename_all = "camelCase")]
 pub struct NewStudentBody {
 	pub name: String,
+	/// WhatsApp, 10 digits.
+	pub phone: String,
+	/// Whoever helps them pay, 10 digits.
+	#[serde(default)]
+	pub helper_phone: Option<String>,
+	/// Kept only when `photo_consent` is true.
+	#[serde(default)]
+	pub photo_uri: Option<String>,
+	#[serde(default)]
+	pub photo_consent: bool,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct CodeDto {
+	pub code: String,
 }

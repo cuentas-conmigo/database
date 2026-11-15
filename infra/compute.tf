@@ -51,7 +51,6 @@ resource "aws_instance" "api" {
     region           = var.region
     registry         = local.registry
     image            = "${aws_ecr_repository.api.repository_url}:latest"
-    payments_table   = aws_dynamodb_table.payments.name
     pey_events_table = aws_dynamodb_table.pey_events.name
     pey_secret_id    = aws_secretsmanager_secret.pey.name
   })
