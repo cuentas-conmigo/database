@@ -1,0 +1,1334 @@
+{
+  "components": {
+    "schemas": {
+      "ChargeOptionDto": {
+        "properties": {
+          "amount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "detail",
+          "amount"
+        ],
+        "type": "object"
+      },
+      "ErrorBody": {
+        "description": "Body of every error of the app's routes.",
+        "properties": {
+          "code": {
+            "description": "Stable code the app reads, e.g. `unauthorized`, `not-found`, `not-implemented`.",
+            "example": "not-found",
+            "type": "string"
+          },
+          "message": {
+            "description": "English text for logs, not for people.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
+      "HealthDto": {
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "peyMode": {
+            "description": "`live` or `simulate`.",
+            "example": "simulate",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "peyMode"
+        ],
+        "type": "object"
+      },
+      "HelperDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "relation": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "relation",
+          "phone"
+        ],
+        "type": "object"
+      },
+      "NewPaymentBody": {
+        "properties": {
+          "amount": {
+            "format": "double",
+            "type": "number"
+          },
+          "method": {
+            "description": "`qr`, `helper` or `cash`.",
+            "type": "string"
+          },
+          "optionId": {
+            "description": "One of the workshop's charge options, or `custom` with `amount`.",
+            "type": "string"
+          },
+          "studentId": {
+            "type": "string"
+          },
+          "workshopId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workshopId",
+          "studentId",
+          "optionId",
+          "method"
+        ],
+        "type": "object"
+      },
+      "NewStudentBody": {
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PaymentDto": {
+        "properties": {
+          "amount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "concept": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "folio": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "optionId": {
+            "type": "string"
+          },
+          "paidAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "qrString": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "description": "`paid` or `pending`.",
+            "example": "pending",
+            "type": "string"
+          },
+          "studentId": {
+            "type": "string"
+          },
+          "workshopId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workshopId",
+          "studentId",
+          "optionId",
+          "method",
+          "amount",
+          "concept",
+          "status",
+          "folio",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "ReviewEntryDto": {
+        "properties": {
+          "status": {
+            "description": "`pending` or `waitlist`.",
+            "type": "string"
+          },
+          "student": {
+            "$ref": "#/components/schemas/StudentDto"
+          }
+        },
+        "required": [
+          "student",
+          "status"
+        ],
+        "type": "object"
+      },
+      "RosterEntryDto": {
+        "properties": {
+          "status": {
+            "description": "`paid` or `pending`, for the current month's fee.",
+            "example": "pending",
+            "type": "string"
+          },
+          "student": {
+            "$ref": "#/components/schemas/StudentDto"
+          }
+        },
+        "required": [
+          "student",
+          "status"
+        ],
+        "type": "object"
+      },
+      "SessionBody": {
+        "properties": {
+          "clave": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "usuario": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "SessionDto": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "description": "Always `instructor` for now.",
+            "example": "instructor",
+            "type": "string"
+          },
+          "workshopId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "role"
+        ],
+        "type": "object"
+      },
+      "StudentDto": {
+        "properties": {
+          "helpers": {
+            "items": {
+              "$ref": "#/components/schemas/HelperDto"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "description": "Amanda's `alumnos` has no phone yet.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "WebhookAckDto": {
+        "properties": {
+          "handled": {
+            "description": "Whether this delivery matched a `pagos` row for the first time.",
+            "type": "boolean"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "handled"
+        ],
+        "type": "object"
+      },
+      "WorkshopDto": {
+        "properties": {
+          "capacity": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "instructor": {
+            "type": "string"
+          },
+          "monthlyFee": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "schedule": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "instructor",
+          "schedule",
+          "monthlyFee",
+          "capacity"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "basic": {
+        "description": "Tallerista usuario and clave (Amanda's accounts)",
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Contract of the Paga con tu foto app, on top of Amanda's Cuentas Conmigo backend.",
+    "license": {
+      "name": ""
+    },
+    "title": "Cuentas API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/v1/alumnos/{id}": {
+      "get": {
+        "operationId": "alumnos_ver",
+        "parameters": [
+          {
+            "description": "Student id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentDto"
+                }
+              }
+            },
+            "description": "The student"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "No such student"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "One student.",
+        "tags": [
+          "alumnos"
+        ]
+      }
+    },
+    "/v1/alumnos/{id}/foto": {
+      "delete": {
+        "operationId": "alumnos_quitar_foto",
+        "parameters": [
+          {
+            "description": "Student id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not in the schema yet"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "Deletes the photo and its consent record. Amanda's schema has no photos yet.",
+        "tags": [
+          "alumnos"
+        ]
+      }
+    },
+    "/v1/alumnos/{id}/tarjeta": {
+      "get": {
+        "operationId": "alumnos_tarjeta",
+        "parameters": [
+          {
+            "description": "Student id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not in the schema yet"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "The student's single card across workshops. Amanda's schema has no student card yet.",
+        "tags": [
+          "alumnos"
+        ]
+      }
+    },
+    "/v1/alumnos/{id}/unirse": {
+      "post": {
+        "operationId": "alumnos_unirse",
+        "parameters": [
+          {
+            "description": "Student id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not in the schema yet"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "Asks for a place with an enrollment code. Amanda's schema has no enrollment codes yet.",
+        "tags": [
+          "alumnos"
+        ]
+      }
+    },
+    "/v1/pagos/cobrar": {
+      "post": {
+        "operationId": "pagos_cobrar",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewPaymentBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentDto"
+                }
+              }
+            },
+            "description": "The payment; `qrString` holds the CoDi QR"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unknown option, method or amount"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Workshop or student not found"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Pey could not create the charge"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "Creates a payment: a CoDi QR with Pey, or cash already paid.",
+        "tags": [
+          "pagos"
+        ]
+      }
+    },
+    "/v1/pagos/{id}": {
+      "get": {
+        "operationId": "pagos_ver",
+        "parameters": [
+          {
+            "description": "Payment id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentDto"
+                }
+              }
+            },
+            "description": "The payment"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not a payment of this tallerista"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "Reads a payment; a pending CoDi payment is checked with Pey first.",
+        "tags": [
+          "pagos"
+        ]
+      }
+    },
+    "/v1/salud": {
+      "get": {
+        "operationId": "salud_ver",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthDto"
+                }
+              }
+            },
+            "description": "The API is up"
+          }
+        },
+        "summary": "Answers without a login, also for load balancers.",
+        "tags": [
+          "salud"
+        ]
+      }
+    },
+    "/v1/sesion": {
+      "post": {
+        "operationId": "sesion_crear",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionDto"
+                }
+              }
+            },
+            "description": "The tallerista and their first workshop"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          }
+        },
+        "summary": "Checks the login (body or Basic header) and answers who it is and their first workshop.",
+        "tags": [
+          "sesion"
+        ]
+      }
+    },
+    "/v1/talleres/{id}": {
+      "get": {
+        "operationId": "talleres_ver",
+        "parameters": [
+          {
+            "description": "Workshop id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkshopDto"
+                }
+              }
+            },
+            "description": "The workshop"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not a workshop of this tallerista"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "One of the tallerista's workshops.",
+        "tags": [
+          "talleres"
+        ]
+      }
+    },
+    "/v1/talleres/{id}/alumnos": {
+      "get": {
+        "operationId": "talleres_alumnos",
+        "parameters": [
+          {
+            "description": "Workshop id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RosterEntryDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Enrolled students"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not a workshop of this tallerista"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "Enrolled students with the status of the current month's fee.",
+        "tags": [
+          "talleres"
+        ]
+      },
+      "post": {
+        "operationId": "talleres_inscribir_alumno",
+        "parameters": [
+          {
+            "description": "Workshop id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewStudentBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentDto"
+                }
+              }
+            },
+            "description": "The new student"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Amanda's validation message"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not a workshop of this tallerista"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "Enrolls a new student, with the same rule as Amanda's `/cuenta/alumno` (`guardar_alumno_cuenta`).",
+        "tags": [
+          "talleres"
+        ]
+      }
+    },
+    "/v1/talleres/{id}/alumnos/{alumno}/aprobar": {
+      "post": {
+        "operationId": "talleres_aprobar",
+        "parameters": [
+          {
+            "description": "Workshop id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Student id",
+            "in": "path",
+            "name": "alumno",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not in the schema yet"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "Gives a waiting student a place. Amanda's schema has no pending enrollments yet.",
+        "tags": [
+          "talleres"
+        ]
+      }
+    },
+    "/v1/talleres/{id}/alumnos/{alumno}/baja": {
+      "post": {
+        "operationId": "talleres_baja",
+        "parameters": [
+          {
+            "description": "Workshop id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Student id",
+            "in": "path",
+            "name": "alumno",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Released"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "No active enrollment"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "Frees the student's place (`inscripciones_taller.activa = 0`); their payments stay.",
+        "tags": [
+          "talleres"
+        ]
+      }
+    },
+    "/v1/talleres/{id}/cobros": {
+      "get": {
+        "operationId": "talleres_cobros",
+        "parameters": [
+          {
+            "description": "Workshop id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChargeOptionDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Charge options"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not a workshop of this tallerista"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "What a student can be charged now; amounts follow `PEY_AMOUNT_OVERRIDE` when it is set.",
+        "tags": [
+          "talleres"
+        ]
+      }
+    },
+    "/v1/talleres/{id}/codigo": {
+      "get": {
+        "operationId": "talleres_codigo_ver",
+        "parameters": [
+          {
+            "description": "Workshop id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not in the schema yet"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "The workshop's enrollment code. Amanda's schema has no enrollment codes yet.",
+        "tags": [
+          "talleres"
+        ]
+      },
+      "post": {
+        "operationId": "talleres_codigo_cambiar",
+        "parameters": [
+          {
+            "description": "Workshop id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not in the schema yet"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "Replaces the workshop's enrollment code. Amanda's schema has no enrollment codes yet.",
+        "tags": [
+          "talleres"
+        ]
+      }
+    },
+    "/v1/talleres/{id}/solicitudes": {
+      "get": {
+        "operationId": "talleres_solicitudes",
+        "parameters": [
+          {
+            "description": "Workshop id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewEntryDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Always empty for now"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not a workshop of this tallerista"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "People waiting for approval. Amanda's schema has no pending enrollments yet, so nobody is waiting.",
+        "tags": [
+          "talleres"
+        ]
+      }
+    },
+    "/v1/webhooks/pey": {
+      "post": {
+        "operationId": "webhooks_pey",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "description": "Pey event, signed with Standard Webhooks",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookAckDto"
+                }
+              }
+            },
+            "description": "Accepted; `handled` says whether it settled a payment"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not a Pey event"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Bad signature"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "No webhook secret configured"
+          }
+        },
+        "summary": "A CoDi payment arrived; settles the matching `pagos` row once.",
+        "tags": [
+          "webhooks"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ]
+}

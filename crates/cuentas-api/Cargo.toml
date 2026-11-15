@@ -1,0 +1,43 @@
+[package]
+name = "cuentas-api"
+default-run = "cuentas-api"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lib]
+name = "cuentas_api"
+path = "src/lib.rs"
+
+[[bin]]
+name = "cuentas-api"
+path = "src/main.rs"
+
+[[bin]]
+name = "openapi"
+path = "src/bin/openapi.rs"
+
+[dependencies]
+actix-cors = { workspace = true }
+actix-web = { workspace = true }
+async-trait = { workspace = true }
+aws-config = { workspace = true }
+aws-sdk-dynamodb = { workspace = true }
+aws-sdk-secretsmanager = { workspace = true }
+argon2 = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true }
+hmac = { workspace = true }
+reqwest = { workspace = true }
+sea-orm = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+utoipa = { workspace = true }
+
+[dev-dependencies]
+actix-http = "3"

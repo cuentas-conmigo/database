@@ -1,0 +1,21 @@
+//! `GET /v1/talleres/{id}/codigo`
+
+use actix_web::{HttpResponse, get};
+
+use crate::error::{AppError, AppResult, ErrorBody};
+
+/// The workshop's enrollment code. Amanda's schema has no enrollment codes yet.
+#[utoipa::path(
+	tag = "talleres",
+	operation_id = "talleres_codigo_ver",
+	params(("id" = String, Path, description = "Workshop id")),
+	responses(
+		(status = 401, description = "Wrong or missing login", body = ErrorBody),
+		(status = 501, description = "Not in the schema yet", body = ErrorBody),
+	),
+	security(("basic" = [])),
+)]
+#[get("/{id}/codigo")]
+pub(super) async fn ver_codigo() -> AppResult<HttpResponse> {
+	Err(AppError::not_implemented("enrollment codes"))
+}

@@ -1,0 +1,75 @@
+#!/bin/bash
+# First boot: Docker, the Compose plugin, the app's compose file (API + SQLite on the root volume)
+# and a unit that keeps trying to start it until the API image exists in ECR.
+set -euxo pipefail
+
+dnf install -y docker
+systemctl enable --now docker
+
+mkdir -p /usr/libexec/docker/cli-plugins
+curl -fsSL -o /usr/libexec/docker/cli-plugins/docker-compose \
+  https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-aarch64
+chmod 755 /usr/libexec/docker/cli-plugins/docker-compose
+
+install -d -m 700 /etc/pagacontufoto
+install -d -m 755 /opt/pagacontufoto
+# SQLite lives here; the API image runs as distroless "nonroot" (uid 65532).
+install -d -m 750 -o 65532 -g 65532 /var/lib/pagacontufoto/data
+touch /etc/pagacontufoto/demo.env /etc/pagacontufoto/mode.env
+chmod 600 /etc/pagacontufoto/demo.env /etc/pagacontufoto/mode.env
+
+# deploy.sh rewrites this file and the demo login on every deploy.
+cat > /opt/pagacontufoto/docker-compose.yml <<'YAML'
+services:
+  api:
+    image: ${image}
+    restart: unless-stopped
+    ports:
+      - "80:8080"
+    volumes:
+      - /var/lib/pagacontufoto/data:/data
+    env_file: /etc/pagacontufoto/demo.env
+    environment:
+      DATABASE_URL: "sqlite:/data/cuentas.db?mode=rwc"
+      PEY_MODE: "$${PEY_MODE:-simulate}"
+      PEY_SECRET_ID: "${pey_secret_id}"
+      PEY_EVENTS_TABLE: "${pey_events_table}"
+      AWS_REGION: "${region}"
+      CURRENT_PERIOD: "2026-12"
+      PORT: "8080"
+      RUST_LOG: "info"
+YAML
+
+cat > /opt/pagacontufoto/start.sh <<'SH'
+#!/bin/bash
+set -euo pipefail
+cd /opt/pagacontufoto
+cp /etc/pagacontufoto/mode.env .env
+aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${registry}
+docker compose pull --quiet api
+docker compose up -d --remove-orphans
+SH
+chmod 755 /opt/pagacontufoto/start.sh
+
+cat > /etc/systemd/system/pagacontufoto.service <<'UNIT'
+[Unit]
+Description=Paga con tu foto API (docker compose)
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/pagacontufoto/start.sh
+Restart=on-failure
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable pagacontufoto.service
+systemctl start --no-block pagacontufoto.service
