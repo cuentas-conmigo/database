@@ -85,6 +85,7 @@ async fn live_mode_creates_a_real_shaped_charge_and_reads_its_status() {
 		events: Arc::new(MemoryEvents::default()),
 		period: "2026-12".into(),
 		amount_override: Some(1.0),
+		approval_required: false,
 	};
 	let tallerista: i32 = ids.try_get("", "tallerista").unwrap();
 	let payment = service

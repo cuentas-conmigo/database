@@ -5,11 +5,11 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{TimeZone, Utc};
 use serde::Deserialize;
 use serde_json::json;
 
-use super::{ChargeRefs, ChargeRequest, PeyClient, PeyError, PushCharge, QrCharge, short_concept};
+use super::{ChargeRefs, ChargeRequest, Paid, PeyClient, PeyError, PushCharge, QrCharge, short_concept};
 
 /// API key and webhook secret, read once from Secrets Manager. Never logged.
 #[derive(Clone)]
@@ -87,6 +87,7 @@ struct PushResponse {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Transaction {
+	id: Option<String>,
 	status: String,
 	date_paid: Option<i64>,
 }
@@ -168,12 +169,13 @@ fn charge_body(request: &ChargeRequest) -> serde_json::Value {
 	})
 }
 
-fn paid_time(transaction: &Transaction) -> Option<DateTime<Utc>> {
-	(transaction.status == "PAID").then(|| {
-		transaction
+fn as_paid(transaction: &Transaction) -> Option<Paid> {
+	(transaction.status == "PAID").then(|| Paid {
+		at: transaction
 			.date_paid
 			.and_then(|seconds| Utc.timestamp_opt(seconds, 0).single())
-			.unwrap_or_else(Utc::now)
+			.unwrap_or_else(Utc::now),
+		transaction_id: transaction.id.clone(),
 	})
 }
 
@@ -200,17 +202,17 @@ impl PeyClient for LivePey {
 		})
 	}
 
-	async fn paid_at(&self, refs: &ChargeRefs<'_>) -> Result<Option<DateTime<Utc>>, PeyError> {
+	async fn paid(&self, refs: &ChargeRefs<'_>) -> Result<Option<Paid>, PeyError> {
 		if !self.should_check(refs.payment_id) {
 			return Ok(None);
 		}
 		if let Some(qr_id) = refs.qr_id {
 			let page: TransactionPage = self.get(&format!("/transaction/codi/qr/{qr_id}")).await?;
-			return Ok(page.items.iter().find_map(paid_time));
+			return Ok(page.items.iter().find_map(as_paid));
 		}
 		if let Some(transaction_id) = refs.transaction_id {
 			let transaction: Transaction = self.get(&format!("/transaction/{transaction_id}")).await?;
-			return Ok(paid_time(&transaction));
+			return Ok(as_paid(&transaction));
 		}
 		Ok(None)
 	}

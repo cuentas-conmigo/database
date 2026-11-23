@@ -22,6 +22,15 @@ pub struct ChargeRecord {
 	pub qr_string: Option<String>,
 }
 
+impl ChargeRecord {
+	/// `created_at` as a time; `None` when it does not parse.
+	pub fn created_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
+		chrono::DateTime::parse_from_rfc3339(&self.created_at)
+			.ok()
+			.map(|time| time.with_timezone(&chrono::Utc))
+	}
+}
+
 #[derive(Debug)]
 pub struct EventsError(pub String);
 

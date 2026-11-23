@@ -19,6 +19,7 @@ use crate::services::cobros::{self, NewPayment};
 		(status = 201, description = "The payment; `qrString` holds the CoDi QR", body = PaymentDto),
 		(status = 400, description = "Unknown option, method or amount", body = ErrorBody),
 		(status = 401, description = "Wrong or missing login", body = ErrorBody),
+		(status = 403, description = "With Pey live, the team has not approved this account for CoDi charges (`charges-not-approved`); cash still works", body = ErrorBody),
 		(status = 404, description = "Workshop or student not found", body = ErrorBody),
 		(status = 502, description = "Pey could not create the charge", body = ErrorBody),
 	),

@@ -31,6 +31,9 @@ pub struct PeySettings {
 	/// Webhook secret for simulate mode and tests; live mode reads it from Secrets Manager.
 	pub webhook_secret: Option<String>,
 	pub settle_after: Duration,
+	/// How often pending CoDi charges are checked with Pey (`PEY_RECONCILE_EVERY` seconds,
+	/// default 60); `None` (`0`) turns the sweep off.
+	pub reconcile_every: Option<Duration>,
 }
 
 fn var(name: &str) -> Option<String> {
@@ -55,6 +58,11 @@ impl Config {
 				amount_override: var("PEY_AMOUNT_OVERRIDE").and_then(|valor| valor.parse().ok()),
 				webhook_secret: var("PEY_WEBHOOK_SECRET"),
 				settle_after: Duration::from_secs(4),
+				reconcile_every: match var("PEY_RECONCILE_EVERY").and_then(|valor| valor.parse::<u64>().ok()) {
+					Some(0) => None,
+					Some(seconds) => Some(Duration::from_secs(seconds)),
+					None => Some(Duration::from_secs(60)),
+				},
 			},
 			events_table: var("PEY_EVENTS_TABLE"),
 			dynamodb_endpoint: var("DYNAMODB_ENDPOINT"),

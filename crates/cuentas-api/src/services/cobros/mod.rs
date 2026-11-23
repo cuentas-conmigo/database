@@ -1,6 +1,8 @@
 //! Charging students: rows in Amanda's `pagos` table, Pey for CoDi, and DynamoDB for what her
 //! schema has no column for (the QR to draw, how the payment started).
 
+pub mod aprobacion;
+mod conciliacion;
 mod opciones;
 
 use std::sync::Arc;
@@ -12,6 +14,7 @@ use crate::models::entities::{pago, taller};
 use crate::services::eventos::{ChargeRecord, EventStore, EventsError};
 use crate::services::pey::{ChargeRefs, ChargeRequest, PeyClient, PeyError, short_concept};
 
+pub use conciliacion::{Reconciler, Sweep, is_due, reconcile_forever};
 pub use opciones::{Charge, ChargeKind, ChargeOption, options_for, resolve};
 
 /// How the instructor collects.
@@ -75,6 +78,8 @@ impl Payment {
 pub enum PaymentError {
 	NotFound,
 	Invalid(&'static str),
+	/// The account is not approved for real CoDi charges yet.
+	NotApproved,
 	Pey(PeyError),
 	Db(DbErr),
 	Events(EventsError),
@@ -107,6 +112,8 @@ pub struct PaymentService {
 	pub events: Arc<dyn EventStore>,
 	pub period: String,
 	pub amount_override: Option<f64>,
+	/// Only accounts in `cobros_reales` may start CoDi charges. On when Pey is live.
+	pub approval_required: bool,
 }
 
 /// A date as Amanda's tables keep it (`yyyy-mm-dd hh:mm:ss`, UTC, see `ahora_texto()`) as RFC 3339.
@@ -156,6 +163,12 @@ impl PaymentService {
 
 	pub async fn start(&self, conn: &DatabaseConnection, input: NewPayment) -> Result<Payment, PaymentError> {
 		let workshop = self.workshop(conn, input.tallerista_id, input.workshop_id).await?;
+		if self.approval_required
+			&& input.method != Method::Cash
+			&& !aprobacion::is_approved(conn, input.tallerista_id).await?
+		{
+			return Err(PaymentError::NotApproved);
+		}
 		crate::models::entities::alumno::Entity::find_by_id(input.student_id)
 			.one(conn)
 			.await?
@@ -283,39 +296,50 @@ impl PaymentService {
 			return Err(PaymentError::NotFound);
 		};
 		self.workshop(conn, tallerista_id, workshop_id).await?;
-		let payment = Payment { row, charge };
-		if payment.is_paid() || payment.row.estado == "fallido" {
-			return Ok(payment);
+		let created_at = charge.as_ref().and_then(ChargeRecord::created_at);
+		if row.estado != "pendiente" {
+			return Ok(Payment { row, charge });
 		}
-		let created_at = payment
-			.charge
-			.as_ref()
-			.and_then(|item| DateTime::parse_from_rfc3339(&item.created_at).ok())
-			.map(|time| time.with_timezone(&Utc));
+		// A Pey outage must not break polling; the webhook or the sweep settles the payment later.
+		let row = match self.settle_with_pey(conn, row.clone(), created_at).await {
+			Ok(settled) => settled.unwrap_or(row),
+			Err(PaymentError::Pey(error)) => {
+				tracing::warn!(pago_id, %error, "could not ask Pey about a pending payment");
+				row
+			}
+			Err(error) => return Err(error),
+		};
+		Ok(Payment { row, charge })
+	}
+
+	/// Asks Pey whether a pending CoDi charge was paid and, if so, marks its row paid.
+	/// Returns the updated row, or `None` while Pey still has it pending.
+	pub(crate) async fn settle_with_pey(
+		&self,
+		conn: &DatabaseConnection,
+		row: pago::Model,
+		created_at: Option<DateTime<Utc>>,
+	) -> Result<Option<pago::Model>, PaymentError> {
 		let refs = ChargeRefs {
-			payment_id: &payment.row.id.to_string(),
-			qr_id: payment.row.codi_qr_id.as_deref(),
-			transaction_id: payment.row.transaction_id.as_deref(),
+			payment_id: &row.id.to_string(),
+			qr_id: row.codi_qr_id.as_deref(),
+			transaction_id: row.transaction_id.as_deref(),
 			created_at,
 		};
-		// A Pey outage must not break polling; the webhook still settles the payment.
-		let paid_at = self.pey.paid_at(&refs).await.unwrap_or(None);
-		match paid_at {
-			Some(paid_at) => {
-				let transaction = payment
-					.row
-					.transaction_id
-					.clone()
-					.or_else(|| payment.row.codi_qr_id.clone())
-					.unwrap_or_else(|| format!("pey-{}", payment.row.id));
-				let row = mark_paid(conn, payment.row, &transaction, "codi.qr.payment_received", paid_at).await?;
-				Ok(Payment {
-					row,
-					charge: payment.charge,
-				})
-			}
-			None => Ok(payment),
-		}
+		let Some(paid) = self.pey.paid(&refs).await.map_err(PaymentError::Pey)? else {
+			return Ok(None);
+		};
+		let tipo_evento = if row.codi_qr_id.is_some() {
+			"codi.qr.payment_received"
+		} else {
+			"codi.push.payment_received"
+		};
+		let transaction = paid
+			.transaction_id
+			.or_else(|| row.transaction_id.clone())
+			.or_else(|| row.codi_qr_id.clone())
+			.unwrap_or_else(|| format!("pey-{}", row.id));
+		Ok(Some(mark_paid(conn, row, &transaction, tipo_evento, paid.at).await?))
 	}
 
 	/// Settles the row a Pey webhook points to; returns `false` when no row matches.

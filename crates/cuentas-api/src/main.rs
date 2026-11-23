@@ -1,4 +1,5 @@
 use actix_web::{App, HttpServer, web};
+use cuentas_api::services::cobros::reconcile_forever;
 use cuentas_api::{app, config::Config, middleware::auth, routes};
 
 // Durante el desarrollo, Actix recomienda recargar con:
@@ -14,6 +15,10 @@ async fn main() -> std::io::Result<()> {
 		.map_err(|error| std::io::Error::other(error.to_string()))?;
 	let db = shared.db;
 	let api = web::Data::new(shared.api);
+	if let Some(every) = config.pey.reconcile_every {
+		let (api, db) = (api.clone(), db.clone());
+		actix_web::rt::spawn(async move { reconcile_forever(&api.payments, &db, every).await });
+	}
 
 	let direccion = format!("0.0.0.0:{}", config.port);
 	println!("Servidor en http://127.0.0.1:{}", config.port);

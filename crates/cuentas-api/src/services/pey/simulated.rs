@@ -6,7 +6,7 @@ use std::time::Duration;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 
-use super::{ChargeRefs, ChargeRequest, PeyClient, PeyError, PushCharge, QrCharge};
+use super::{ChargeRefs, ChargeRequest, Paid, PeyClient, PeyError, PushCharge, QrCharge};
 
 /// Clock used to decide when a simulated payment is paid; replaceable in tests.
 pub type Clock = Arc<dyn Fn() -> DateTime<Utc> + Send + Sync>;
@@ -43,14 +43,17 @@ impl PeyClient for SimulatedPey {
 		})
 	}
 
-	async fn paid_at(&self, refs: &ChargeRefs<'_>) -> Result<Option<DateTime<Utc>>, PeyError> {
+	async fn paid(&self, refs: &ChargeRefs<'_>) -> Result<Option<Paid>, PeyError> {
 		let Some(created_at) = refs.created_at else {
 			return Ok(None);
 		};
 		let now = (self.clock)();
 		let elapsed = now.signed_duration_since(created_at);
 		let settle = chrono::Duration::from_std(self.settle_after).unwrap_or_default();
-		Ok((elapsed >= settle).then_some(now))
+		Ok((elapsed >= settle).then_some(Paid {
+			at: now,
+			transaction_id: None,
+		}))
 	}
 
 	fn webhook_secret(&self) -> Option<&str> {

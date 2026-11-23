@@ -94,6 +94,7 @@ pub async fn build(config: &Config) -> Result<Shared, StartError> {
 				events,
 				period: config.current_period.clone(),
 				amount_override: config.pey.amount_override,
+				approval_required: config.pey.live,
 			},
 			capacity: config.workshop_capacity,
 			webhook_secret,

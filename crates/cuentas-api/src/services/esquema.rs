@@ -43,6 +43,7 @@ pub async fn sembrar(db: &DatabaseConnection, siembra: &Siembra) -> Result<(), D
 		if let Some((usuario, clave)) = &siembra.demo {
 			correr_sql(db, SEED_DEMO).await?;
 			asegurar_demo(db, usuario, clave).await?;
+			crate::services::cobros::aprobacion::approve_by_pey_key(db, DEMO_PEY_API_KEY_ID).await?;
 		}
 	}
 	asegurar_accesos(db, siembra.admin_clave.as_deref()).await

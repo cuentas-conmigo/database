@@ -10,6 +10,6 @@ pub mod webhooks;
 pub use alumnos::{HelperDto, PhotoDto, StudentDto};
 pub use pagos::{NewPaymentBody, PaymentDto};
 pub use salud::HealthDto;
-pub use sesion::{SessionBody, SessionDto};
+pub use sesion::{NewAccountBody, SessionBody, SessionDto};
 pub use talleres::{ChargeOptionDto, CodeDto, NewStudentBody, ReviewEntryDto, RosterEntryDto, WorkshopDto};
 pub use webhooks::WebhookAckDto;

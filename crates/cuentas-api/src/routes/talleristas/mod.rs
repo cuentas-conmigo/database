@@ -1,12 +1,15 @@
 //! `/talleristas` — Talleristas (administración).
 
 mod _agregar_navegador;
+mod _aprobar;
 mod _borrar;
 mod _borrar_navegador;
 mod _cambiar;
 mod _cambiar_navegador;
 mod _crear;
 mod _listar;
+mod _listar_aprobaciones;
+mod _quitar_aprobacion;
 
 use crate::error::ApiError;
 use crate::models::entities::tallerista;
@@ -16,18 +19,24 @@ use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 use serde::Deserialize;
 
 use _agregar_navegador::tallerista_agregar_navegador;
+use _aprobar::aprobar_cobros_reales;
 use _borrar::borrar_tallerista;
 use _borrar_navegador::tallerista_borrar_navegador;
 use _cambiar::cambiar_tallerista;
 use _cambiar_navegador::tallerista_cambiar_navegador;
 use _crear::crear_tallerista;
 use _listar::listar_talleristas;
+use _listar_aprobaciones::listar_cobros_reales;
+use _quitar_aprobacion::quitar_cobros_reales;
 
 /// Registra `/talleristas` y sus acciones.
 pub fn config(cfg: &mut web::ServiceConfig) {
 	cfg.service(
 		web::scope("/talleristas")
 			.service(listar_talleristas)
+			.service(listar_cobros_reales)
+			.service(aprobar_cobros_reales)
+			.service(quitar_cobros_reales)
 			.service(crear_tallerista)
 			.service(tallerista_agregar_navegador)
 			.service(tallerista_borrar_navegador)

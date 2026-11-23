@@ -34,12 +34,14 @@ async fn setup() -> (
 	Harness,
 	impl Service<actix_http::Request, Response = ServiceResponse<impl MessageBody>, Error = actix_web::Error>,
 ) {
-	setup_with(None).await
+	setup_with(None, false).await
 }
 
-/// Like `setup`, with `PEY_AMOUNT_OVERRIDE` set to `amount_override`.
+/// Like `setup`, with `PEY_AMOUNT_OVERRIDE` set to `amount_override`, and with CoDi charges only for
+/// approved accounts when `approval_required` (as with Pey live).
 async fn setup_with(
 	amount_override: Option<f64>,
+	approval_required: bool,
 ) -> (
 	Harness,
 	impl Service<actix_http::Request, Response = ServiceResponse<impl MessageBody>, Error = actix_web::Error>,
@@ -62,6 +64,7 @@ async fn setup_with(
 			events: Arc::new(MemoryEvents::default()),
 			period: "2026-12".into(),
 			amount_override,
+			approval_required,
 		},
 		capacity: 12,
 		webhook_secret: Some(WEBHOOK_SECRET.into()),
@@ -464,7 +467,7 @@ async fn without_the_override_amounts_are_the_real_fees() {
 
 #[actix_web::test]
 async fn the_amount_override_is_what_every_screen_and_pagos_show() {
-	let (_harness, app) = setup_with(Some(1.0)).await;
+	let (_harness, app) = setup_with(Some(1.0), false).await;
 	let workshop = workshop_id(&app).await;
 	let rosa = student_id(&app, &workshop, "Rosa Martínez").await;
 
@@ -515,6 +518,92 @@ async fn the_amount_override_is_what_every_screen_and_pagos_show() {
 }
 
 #[actix_web::test]
+async fn only_approved_accounts_start_codi_charges_when_pey_is_live() {
+	let (_harness, app) = setup_with(Some(1.0), true).await;
+	let workshop = workshop_id(&app).await;
+	let rosa = student_id(&app, &workshop, "Rosa Martínez").await;
+	let admin = (
+		"Authorization",
+		basic(services::ADMIN_USUARIO, services::ADMIN_CLAVE_PRUEBAS),
+	);
+	let charge = |method: &str| {
+		test::TestRequest::post()
+			.uri("/v1/pagos/cobrar")
+			.insert_header(auth())
+			.set_json(json!({
+					"workshopId": workshop, "studentId": rosa, "optionId": "monthly-2026-12",
+					"method": method, "amount": 130
+			}))
+	};
+
+	let (_, accounts) = call(
+		&app,
+		test::TestRequest::get()
+			.uri("/v1/talleristas/cobros-reales")
+			.insert_header(admin.clone()),
+	)
+	.await;
+	let maria = accounts
+		.as_array()
+		.unwrap_or_else(|| panic!("accounts: {accounts}"))
+		.iter()
+		.find(|account| account["usuario"] == USER)
+		.unwrap()
+		.clone();
+	assert!(
+		maria["aprobadoEn"].is_string(),
+		"the seeded demo account starts approved"
+	);
+	let maria = maria["id"].as_i64().unwrap();
+	let (status, _) = call(&app, charge("qr")).await;
+	assert_eq!(status, StatusCode::CREATED);
+
+	let (status, _) = call(
+		&app,
+		test::TestRequest::delete()
+			.uri(&format!("/v1/talleristas/{maria}/cobros-reales"))
+			.insert_header(admin.clone()),
+	)
+	.await;
+	assert_eq!(status, StatusCode::OK);
+	let (status, error) = call(&app, charge("qr")).await;
+	assert_eq!(status, StatusCode::FORBIDDEN);
+	assert_eq!(error["code"], "charges-not-approved");
+	let (status, _) = call(&app, charge("helper")).await;
+	assert_eq!(status, StatusCode::FORBIDDEN);
+	let (status, cash) = call(&app, charge("cash")).await;
+	assert_eq!(status, StatusCode::CREATED, "cash needs no approval");
+	assert_eq!(cash["status"], "paid");
+
+	let (status, _) = call(
+		&app,
+		test::TestRequest::put()
+			.uri(&format!("/v1/talleristas/{maria}/cobros-reales"))
+			.insert_header(("Authorization", basic(USER, PASS))),
+	)
+	.await;
+	assert_eq!(status, StatusCode::UNAUTHORIZED, "only the admin approves");
+	let (status, _) = call(
+		&app,
+		test::TestRequest::put()
+			.uri("/v1/talleristas/999999/cobros-reales")
+			.insert_header(admin.clone()),
+	)
+	.await;
+	assert_eq!(status, StatusCode::NOT_FOUND);
+	let (status, _) = call(
+		&app,
+		test::TestRequest::put()
+			.uri(&format!("/v1/talleristas/{maria}/cobros-reales"))
+			.insert_header(admin),
+	)
+	.await;
+	assert_eq!(status, StatusCode::OK);
+	let (status, _) = call(&app, charge("qr")).await;
+	assert_eq!(status, StatusCode::CREATED);
+}
+
+#[actix_web::test]
 async fn the_openapi_document_is_not_served_but_lists_the_contract() {
 	let (_harness, app) = setup().await;
 
@@ -527,4 +616,180 @@ async fn the_openapi_document_is_not_served_but_lists_the_contract() {
 	assert_eq!(doc["info"]["title"], "Cuentas API");
 	assert!(doc["paths"]["/v1/pagos/cobrar"]["post"].is_object());
 	assert!(doc["paths"]["/v1/talleres/{id}/alumnos"]["get"].is_object());
+}
+
+fn new_account(usuario: &str) -> Value {
+	json!({
+		"usuario": usuario, "clave": "barro-2026", "name": "Lupe Hernández",
+		"trade": "cerámica", "workshop": "Taller de barro", "monthlyFee": 150
+	})
+}
+
+#[actix_web::test]
+async fn the_app_creates_an_account_with_its_first_workshop() {
+	let (_harness, app) = setup().await;
+
+	let (status, session) = call(
+		&app,
+		test::TestRequest::post()
+			.uri("/v1/cuenta")
+			.set_json(new_account("lupita")),
+	)
+	.await;
+	assert_eq!(status, StatusCode::CREATED, "{session}");
+	assert_eq!(session["name"], "Lupe Hernández");
+	assert_eq!(session["role"], "instructor");
+	let workshop = session["workshopId"].as_str().unwrap().to_string();
+
+	let (status, again) = call(
+		&app,
+		test::TestRequest::post()
+			.uri("/v1/sesion")
+			.set_json(json!({ "usuario": "lupita", "clave": "barro-2026" })),
+	)
+	.await;
+	assert_eq!(status, StatusCode::OK);
+	assert_eq!(again["workshopId"], workshop.as_str());
+	let (status, details) = call(
+		&app,
+		test::TestRequest::get()
+			.uri(&format!("/v1/talleres/{workshop}"))
+			.insert_header(("Authorization", basic("lupita", "barro-2026"))),
+	)
+	.await;
+	assert_eq!(status, StatusCode::OK, "{details}");
+	assert_eq!(details["name"], "Taller de barro");
+	assert_eq!(details["monthlyFee"], 150);
+
+	let (status, taken) = call(
+		&app,
+		test::TestRequest::post()
+			.uri("/v1/cuenta")
+			.set_json(new_account("Lupita")),
+	)
+	.await;
+	assert_eq!(status, StatusCode::CONFLICT);
+	assert_eq!(taken["code"], "username-taken");
+
+	let mut short = new_account("otra");
+	short["clave"] = json!("123");
+	let (status, invalid) = call(&app, test::TestRequest::post().uri("/v1/cuenta").set_json(short)).await;
+	assert_eq!(status, StatusCode::BAD_REQUEST);
+	assert!(invalid["message"].as_str().unwrap().contains("contraseña"), "{invalid}");
+	let mut free = new_account("otra");
+	free["monthlyFee"] = json!(0);
+	let (status, _) = call(&app, test::TestRequest::post().uri("/v1/cuenta").set_json(free)).await;
+	assert_eq!(status, StatusCode::BAD_REQUEST);
+	let (status, _) = call(
+		&app,
+		test::TestRequest::post()
+			.uri("/v1/sesion")
+			.set_json(json!({ "usuario": "otra", "clave": "barro-2026" })),
+	)
+	.await;
+	assert_eq!(
+		status,
+		StatusCode::UNAUTHORIZED,
+		"a refused sign-up leaves nothing behind"
+	);
+}
+
+#[actix_web::test]
+async fn deleting_an_account_removes_its_data_and_only_students_who_were_only_theirs() {
+	let (_harness, app) = setup().await;
+	let admin = (
+		"Authorization",
+		basic(services::ADMIN_USUARIO, services::ADMIN_CLAVE_PRUEBAS),
+	);
+	let lupita = ("Authorization", basic("lupita", "barro-2026"));
+	let (_, session) = call(
+		&app,
+		test::TestRequest::post()
+			.uri("/v1/cuenta")
+			.set_json(new_account("lupita")),
+	)
+	.await;
+	let workshop = session["workshopId"].as_str().unwrap().to_string();
+
+	let (status, only_hers) = call(
+		&app,
+		test::TestRequest::post()
+			.uri(&format!("/v1/talleres/{workshop}/alumnos"))
+			.insert_header(lupita.clone())
+			.set_json(json!({ "name": "Teresa Solo", "phone": "5512340001", "helperPhone": "5512340002" })),
+	)
+	.await;
+	assert_eq!(status, StatusCode::CREATED, "{only_hers}");
+	let (status, _) = call(
+		&app,
+		test::TestRequest::post()
+			.uri("/v1/pagos/cobrar")
+			.insert_header(lupita.clone())
+			.set_json(json!({
+					"workshopId": workshop, "studentId": only_hers["id"], "optionId": "monthly-2026-12",
+					"method": "cash", "amount": 150
+			})),
+	)
+	.await;
+	assert_eq!(status, StatusCode::CREATED);
+	let demo_workshop = workshop_id(&app).await;
+	let rosa = student_id(&app, &demo_workshop, "Rosa Martínez").await;
+	let (status, shared) = call(
+		&app,
+		test::TestRequest::post()
+			.uri("/v1/inscripciones")
+			.insert_header(admin.clone())
+			.set_json(json!({ "alumno_id": rosa.parse::<i32>().unwrap(), "taller_id": workshop.parse::<i32>().unwrap() })),
+	)
+	.await;
+	assert!(status.is_success(), "{status} {shared}");
+
+	let (status, _) = call(
+		&app,
+		test::TestRequest::delete()
+			.uri("/v1/cuenta")
+			.insert_header(("Authorization", basic(USER, "mal"))),
+	)
+	.await;
+	assert_eq!(status, StatusCode::UNAUTHORIZED);
+	let (status, _) = call(
+		&app,
+		test::TestRequest::delete()
+			.uri("/v1/cuenta")
+			.insert_header(lupita.clone()),
+	)
+	.await;
+	assert_eq!(status, StatusCode::NO_CONTENT);
+
+	let (status, _) = call(
+		&app,
+		test::TestRequest::post()
+			.uri("/v1/sesion")
+			.set_json(json!({ "usuario": "lupita", "clave": "barro-2026" })),
+	)
+	.await;
+	assert_eq!(status, StatusCode::UNAUTHORIZED);
+	let (_, students) = call(&app, test::TestRequest::get().uri("/v1/alumnos").insert_header(admin)).await;
+	let names: Vec<&str> = students
+		.as_array()
+		.unwrap_or_else(|| panic!("students: {students}"))
+		.iter()
+		.filter_map(|student| student["nombre"].as_str())
+		.collect();
+	assert!(!names.contains(&"Teresa Solo"), "{names:?}");
+	assert!(names.contains(&"Rosa Martínez"), "Rosa is also in María's workshop");
+	let (_, roster) = call(
+		&app,
+		test::TestRequest::get()
+			.uri(&format!("/v1/talleres/{demo_workshop}/alumnos"))
+			.insert_header(auth()),
+	)
+	.await;
+	assert!(
+		roster
+			.as_array()
+			.unwrap()
+			.iter()
+			.any(|entry| entry["student"]["name"] == "Rosa Martínez")
+	);
 }

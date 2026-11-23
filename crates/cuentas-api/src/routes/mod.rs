@@ -6,6 +6,7 @@ mod alumnos;
 mod anuales;
 pub(crate) mod comun;
 mod cuenta;
+mod cuenta_app;
 mod inscripciones;
 mod nfc;
 mod pagos;
@@ -27,6 +28,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 		web::scope("/v1")
 			.configure(salud::config)
 			.configure(sesion::config)
+			.configure(cuenta_app::config)
 			.configure(webhooks::config)
 			.configure(reportes::config)
 			.configure(alumnos::config)
@@ -42,6 +44,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 /// Fragmentos de OpenAPI de las rutas de la app, que junta [`crate::docs::ApiDoc`].
 pub mod docs {
 	pub use super::alumnos::ApiDoc as Alumnos;
+	pub use super::cuenta_app::ApiDoc as Cuenta;
 	pub use super::pagos::ApiDoc as Pagos;
 	pub use super::salud::ApiDoc as Salud;
 	pub use super::sesion::ApiDoc as Sesion;

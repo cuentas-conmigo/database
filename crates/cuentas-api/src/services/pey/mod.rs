@@ -47,6 +47,14 @@ pub struct ChargeRefs<'a> {
 	pub created_at: Option<DateTime<Utc>>,
 }
 
+/// A charge Pey reports as paid.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Paid {
+	pub at: DateTime<Utc>,
+	/// Pey's transaction (ULID), when Pey names one.
+	pub transaction_id: Option<String>,
+}
+
 #[derive(Debug)]
 pub struct PeyError(pub String);
 
@@ -64,8 +72,8 @@ pub trait PeyClient: Send + Sync {
 	fn is_live(&self) -> bool;
 	async fn create_qr(&self, request: &ChargeRequest) -> Result<QrCharge, PeyError>;
 	async fn create_push(&self, request: &ChargeRequest, phone: &str) -> Result<PushCharge, PeyError>;
-	/// Returns when it was paid if Pey (or the simulation) says so; `None` while pending.
-	async fn paid_at(&self, refs: &ChargeRefs<'_>) -> Result<Option<DateTime<Utc>>, PeyError>;
+	/// The payment if Pey (or the simulation) says the charge was paid; `None` while pending.
+	async fn paid(&self, refs: &ChargeRefs<'_>) -> Result<Option<Paid>, PeyError>;
 	/// Secret to verify webhooks; `None` means webhooks cannot be trusted.
 	fn webhook_secret(&self) -> Option<&str>;
 }
