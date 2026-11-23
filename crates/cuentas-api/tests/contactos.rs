@@ -59,6 +59,7 @@ async fn setup_with(
 			events: Arc::new(MemoryEvents::default()),
 			period: "2026-12".into(),
 			amount_override,
+			approval_required: false,
 		},
 		capacity: 12,
 		webhook_secret: Some(WEBHOOK_SECRET.into()),

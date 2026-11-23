@@ -51,7 +51,7 @@ The systemd unit `pagacontufoto.service` keeps retrying every 60 s until the ima
 
 `deploy.sh` creates `infra/.demo.env` the first time (user `mariagonzalez` with a random 20-character password, plus a random `ADMIN_CLAVE`; file mode 600) and installs it on the instance as `/etc/pagacontufoto/demo.env`. With `SEED=1` the API uses it to create the demo tallerista and Amanda's admin login, whose passwords need an argon2 hash and so cannot live in the SQL seed files. The app reads the same file to configure its demo login. These passwords travel inside the SSM command, so they appear in the account's SSM command history; they only protect invented demo data.
 
-API environment on the instance: `DATABASE_URL` (from `api-db.env`), `SEED=1`, `DEMO_USUARIO`, `DEMO_CLAVE`, `ADMIN_CLAVE`, `PEY_MODE` and `PEY_AMOUNT_OVERRIDE` (from `mode.env`), `PEY_SECRET_ID`, `PEY_EVENTS_TABLE`, `AWS_REGION`, `CURRENT_PERIOD=2026-12`, `PORT=8080`.
+API environment on the instance: `DATABASE_URL` (from `api-db.env`), `SEED=1`, `DEMO_USUARIO`, `DEMO_CLAVE`, `ADMIN_CLAVE`, `PEY_MODE` and `PEY_AMOUNT_OVERRIDE` (from `mode.env`), `PEY_SECRET_ID`, `PEY_EVENTS_TABLE`, `AWS_REGION`, `CURRENT_PERIOD=2026-12`, `PORT=8080`. Optional: `PEY_RECONCILE_EVERY` (seconds between checks of pending CoDi charges with Pey; default 60, `0` turns it off).
 
 ## Roll back
 
@@ -101,6 +101,18 @@ On start, the API runs the migrations and the seed files again. Webhook items st
 
 3. Register the webhook in Pey's dashboard: `tofu output -raw webhook_url` (that is `https://<cloudfront>/v1/webhooks/pey`).
 4. `PEY_AMOUNT_OVERRIDE=1` makes every charge MXN 1 for testing; drop that line from `mode.env` to charge real amounts. Set `PEY_MODE=simulate` again the same way to go back.
+
+## Approve an account for real CoDi charges
+
+Anyone can create an account at `/crear`. With `PEY_MODE=live`, only approved accounts can start CoDi charges (QR or the helper's notice); the rest get `403 charges-not-approved` and can still note cash. The demo account is approved when seeding. With the admin login from `.demo.env` (read it into a variable; never print it):
+
+```bash
+set -a; . infra/.demo.env; set +a
+API="$(cd infra && tofu output -raw api_url)"
+curl -s -u "admin:$ADMIN_CLAVE" "$API/v1/talleristas/cobros-reales"            # waiting accounts first
+curl -s -u "admin:$ADMIN_CLAVE" -X PUT "$API/v1/talleristas/<id>/cobros-reales"  # approve
+curl -s -u "admin:$ADMIN_CLAVE" -X DELETE "$API/v1/talleristas/<id>/cobros-reales"  # take it back
+```
 
 ## Look inside the instance
 

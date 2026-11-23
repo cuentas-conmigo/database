@@ -67,7 +67,7 @@ where
 				|| ruta == "/salir"
 				|| ruta == "/cuenta/crear"
 				|| ruta == "/cuenta/entrar"
-				|| es_publica(ruta)
+				|| es_publica(req.method(), ruta)
 			{
 				let respuesta = service.call(req).await?;
 				return Ok(respuesta.map_into_left_body());
@@ -159,10 +159,10 @@ where
 	}
 }
 
-/// Rutas de la app que no piden login: la salud, el aviso de Pey (que trae su firma) y la sesión,
-/// que revisa el login por sí misma.
-fn es_publica(ruta: &str) -> bool {
-	matches!(ruta, "/v1/salud" | "/v1/webhooks/pey" | "/v1/sesion")
+/// Rutas de la app que no piden login: la salud, el aviso de Pey (que trae su firma), la sesión,
+/// que revisa el login por sí misma, y crear una cuenta.
+fn es_publica(metodo: &Method, ruta: &str) -> bool {
+	matches!(ruta, "/v1/salud" | "/v1/webhooks/pey" | "/v1/sesion") || (metodo == Method::POST && ruta == "/v1/cuenta")
 }
 
 /// Rutas de la app, que entran con el login del tallerista. El resto de `/v1` es administración.
@@ -179,6 +179,7 @@ fn es_de_la_app(metodo: &Method, ruta: &str) -> bool {
 		("GET", ["v1", "alumnos", id, "tarjeta"]) => numero(id),
 		("POST", ["v1", "alumnos", id, "unirse"]) => numero(id),
 		("POST", ["v1", "pagos", "cobrar"]) => true,
+		("DELETE", ["v1", "cuenta"]) => true,
 		("GET", ["v1", "pagos", id]) => numero(id),
 		_ => false,
 	}

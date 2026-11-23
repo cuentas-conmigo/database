@@ -124,6 +124,10 @@ impl AppError {
 		)
 	}
 
+	pub fn username_taken() -> Self {
+		Self::new(StatusCode::CONFLICT, "username-taken", "that username is already taken")
+	}
+
 	pub fn bad_request(message: impl Into<String>) -> Self {
 		Self::new(StatusCode::BAD_REQUEST, "bad-request", message)
 	}
@@ -164,6 +168,11 @@ impl From<PaymentError> for AppError {
 		match error {
 			PaymentError::NotFound => Self::not_found("payment, workshop or student"),
 			PaymentError::Invalid(message) => Self::bad_request(message),
+			PaymentError::NotApproved => Self::new(
+				StatusCode::FORBIDDEN,
+				"charges-not-approved",
+				"this account cannot start CoDi charges until the team approves it",
+			),
 			PaymentError::Pey(error) => {
 				tracing::warn!(%error, "pey rejected the charge");
 				Self::new(

@@ -19,3 +19,20 @@ pub struct SessionDto {
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub workshop_id: Option<String>,
 }
+
+/// The app's sign-up form: the login, who teaches, and their first workshop.
+#[derive(Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct NewAccountBody {
+	/// Letters and numbers, 3 to 30, no spaces.
+	pub usuario: String,
+	/// 6 to 100 characters.
+	pub clave: String,
+	pub name: String,
+	/// What they teach, e.g. `tejido`.
+	pub trade: String,
+	/// Name of their first workshop.
+	pub workshop: String,
+	/// Monthly fee in MXN.
+	pub monthly_fee: i32,
+}

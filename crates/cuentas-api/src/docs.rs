@@ -38,6 +38,7 @@ impl Modify for BasicAuth {
 	nest(
 		(path = "/v1/salud", api = api::Salud),
 		(path = "/v1/sesion", api = api::Sesion),
+		(path = "/v1/cuenta", api = api::Cuenta),
 		(path = "/v1/talleres", api = api::Talleres),
 		(path = "/v1/alumnos", api = api::Alumnos),
 		(path = "/v1/pagos", api = api::Pagos),
@@ -109,7 +110,8 @@ mod tests {
 		for (path, item) in doc["paths"].as_object().expect("paths") {
 			for (method, operation) in item.as_object().expect("operations") {
 				let secured = operation.get("security").is_some();
-				assert_eq!(secured, !public.contains(&path.as_str()), "{method} {path}");
+				let open = public.contains(&path.as_str()) || (path == "/v1/cuenta" && method == "post");
+				assert_eq!(secured, !open, "{method} {path}");
 			}
 		}
 	}

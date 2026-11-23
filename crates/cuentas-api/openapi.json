@@ -91,6 +91,44 @@
         ],
         "type": "object"
       },
+      "NewAccountBody": {
+        "description": "The app's sign-up form: the login, who teaches, and their first workshop.",
+        "properties": {
+          "clave": {
+            "description": "6 to 100 characters.",
+            "type": "string"
+          },
+          "monthlyFee": {
+            "description": "Monthly fee in MXN.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "trade": {
+            "description": "What they teach, e.g. `tejido`.",
+            "type": "string"
+          },
+          "usuario": {
+            "description": "Letters and numbers, 3 to 30, no spaces.",
+            "type": "string"
+          },
+          "workshop": {
+            "description": "Name of their first workshop.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "usuario",
+          "clave",
+          "name",
+          "trade",
+          "workshop",
+          "monthlyFee"
+        ],
+        "type": "object"
+      },
       "NewPaymentBody": {
         "properties": {
           "amount": {
@@ -622,6 +660,84 @@
         ]
       }
     },
+    "/v1/cuenta": {
+      "delete": {
+        "operationId": "cuenta_borrar",
+        "responses": {
+          "204": {
+            "description": "The account and its data are gone"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Wrong or missing login"
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "summary": "Deletes the signed-in instructor's account, their workshops, students' records there and payments.\nStudents who also belong to another instructor's workshop stay for that workshop.",
+        "tags": [
+          "cuenta"
+        ]
+      },
+      "post": {
+        "operationId": "cuenta_crear",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewAccountBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionDto"
+                }
+              }
+            },
+            "description": "The new instructor and their workshop"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "A field to fix, in plain Spanish in `message`"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "The username is taken (`username-taken`)"
+          }
+        },
+        "summary": "Creates an instructor account with its first workshop; the app then signs in with the same login.",
+        "tags": [
+          "cuenta"
+        ]
+      }
+    },
     "/v1/pagos/cobrar": {
       "post": {
         "operationId": "pagos_cobrar",
@@ -665,6 +781,16 @@
               }
             },
             "description": "Wrong or missing login"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "With Pey live, the team has not approved this account for CoDi charges (`charges-not-approved`); cash still works"
           },
           "404": {
             "content": {
